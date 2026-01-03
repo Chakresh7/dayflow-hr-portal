@@ -12,12 +12,21 @@ interface User {
   position?: string;
 }
 
+interface SignupData {
+  name: string;
+  email: string;
+  password: string;
+  company: string;
+  phone: string;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   userRole: UserRole;
   isFirstLogin: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (data: SignupData) => Promise<{ success: boolean; error?: string; role?: UserRole }>;
   logout: () => void;
   completePasswordChange: () => void;
 }
@@ -78,6 +87,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: false, error: 'Invalid email or password' };
   };
 
+  const signup = async (data: SignupData): Promise<{ success: boolean; error?: string; role?: UserRole }> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Check if email already exists
+    const existingUser = mockUsers.find(u => u.email.toLowerCase() === data.email.toLowerCase());
+    if (existingUser) {
+      return { success: false, error: 'An account with this email already exists' };
+    }
+
+    // Create new user (mock - in real app this would be saved to DB)
+    // New signups are assigned HR role by default (as they're creating a company)
+    const newUser: User = {
+      id: String(mockUsers.length + 1),
+      name: data.name,
+      email: data.email,
+      role: 'HR',
+      department: 'Administration',
+      position: 'Admin',
+    };
+
+    setUser(newUser);
+    setIsAuthenticated(true);
+    setIsFirstLogin(false);
+
+    return { success: true, role: 'HR' };
+  };
+
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
@@ -96,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userRole: user?.role ?? null,
         isFirstLogin,
         login,
+        signup,
         logout,
         completePasswordChange,
       }}
