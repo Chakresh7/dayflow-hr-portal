@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Eye, EyeOff, Loader2, Shield, Users } from 'lucide-react';
+import authBg from '@/assets/auth-bg.jpg';
 
 type AuthMode = 'login' | 'signup';
 type RoleType = 'HR' | 'EMPLOYEE';
@@ -90,22 +91,76 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        {/* Logo & Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary rounded-2xl mb-6">
-            <span className="text-primary-foreground font-bold text-2xl">D</span>
+    <div className="min-h-screen flex">
+      {/* Left Side - Image */}
+      <div className="hidden lg:flex lg:w-1/2 relative">
+        <img 
+          src={authBg} 
+          alt="Office workspace" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5" />
+        
+        {/* Overlay Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-background rounded-xl flex items-center justify-center">
+              <span className="text-foreground font-bold text-lg">D</span>
+            </div>
+            <span className="text-xl font-semibold text-background">Dayflow</span>
           </div>
-          <h1 className="text-3xl font-semibold text-foreground mb-2">Dayflow</h1>
-          <p className="text-muted-foreground">Every workday, perfectly aligned.</p>
+          
+          {/* Quote */}
+          <div className="max-w-md">
+            <blockquote className="text-2xl font-medium text-background leading-relaxed mb-4">
+              "Every workday, perfectly aligned."
+            </blockquote>
+            <p className="text-background/80">
+              Streamline your HR operations with our intuitive workforce management platform.
+            </p>
+          </div>
+          
+          {/* Features */}
+          <div className="flex gap-8">
+            <div className="text-background/90">
+              <p className="text-3xl font-bold">500+</p>
+              <p className="text-sm text-background/70">Companies trust us</p>
+            </div>
+            <div className="text-background/90">
+              <p className="text-3xl font-bold">50k+</p>
+              <p className="text-sm text-background/70">Active users</p>
+            </div>
+            <div className="text-background/90">
+              <p className="text-3xl font-bold">99.9%</p>
+              <p className="text-sm text-background/70">Uptime</p>
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* Auth Card */}
-        <div className="card-elevated p-8">
-          <h2 className="text-xl font-semibold text-foreground text-center mb-6">
-            {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
-          </h2>
+      {/* Right Side - Form */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden text-center mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-primary rounded-xl mb-4">
+              <span className="text-primary-foreground font-bold text-xl">D</span>
+            </div>
+            <h1 className="text-2xl font-semibold text-foreground">Dayflow</h1>
+          </div>
+
+          {/* Header */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-foreground mb-2">
+              {mode === 'login' ? 'Welcome back' : 'Create an account'}
+            </h2>
+            <p className="text-muted-foreground">
+              {mode === 'login' 
+                ? 'Enter your credentials to access your account' 
+                : 'Get started with your free account today'}
+            </p>
+          </div>
 
           <form onSubmit={mode === 'login' ? handleLogin : handleSignup} className="space-y-5">
             {/* Error Message */}
@@ -135,9 +190,9 @@ export default function Login() {
                       type="button"
                       onClick={() => setSelectedRole('HR')}
                       disabled={isLoading}
-                      className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                      className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
                         selectedRole === 'HR'
-                          ? 'border-primary bg-primary/10 text-primary'
+                          ? 'border-primary bg-primary/5 text-foreground'
                           : 'border-border hover:border-primary/50 text-muted-foreground'
                       }`}
                     >
@@ -149,9 +204,9 @@ export default function Login() {
                       type="button"
                       onClick={() => setSelectedRole('EMPLOYEE')}
                       disabled={isLoading}
-                      className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                      className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
                         selectedRole === 'EMPLOYEE'
-                          ? 'border-primary bg-primary/10 text-primary'
+                          ? 'border-primary bg-primary/5 text-foreground'
                           : 'border-border hover:border-primary/50 text-muted-foreground'
                       }`}
                     >
@@ -201,7 +256,7 @@ export default function Login() {
             {/* Email Field */}
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-foreground">
-                {mode === 'login' ? 'Login ID or Email' : 'Email'}
+                {mode === 'login' ? 'Email address' : 'Email'}
               </label>
               <input
                 id="email"
@@ -236,9 +291,16 @@ export default function Login() {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                  Password
+                </label>
+                {mode === 'login' && (
+                  <button type="button" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <input
                   id="password"
@@ -280,7 +342,11 @@ export default function Login() {
             )}
 
             {/* Submit Button */}
-            <button type="submit" className="btn-primary flex items-center justify-center gap-2" disabled={isLoading}>
+            <button 
+              type="submit" 
+              className="btn-primary flex items-center justify-center gap-2 h-12 rounded-xl" 
+              disabled={isLoading}
+            >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
               {isLoading 
                 ? (mode === 'login' ? 'Signing in...' : 'Creating account...') 
@@ -290,7 +356,7 @@ export default function Login() {
           </form>
 
           {/* Toggle Mode */}
-          <div className="mt-6 pt-6 border-t border-border text-center">
+          <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground">
               {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}
               <button
@@ -302,6 +368,16 @@ export default function Login() {
               </button>
             </p>
           </div>
+
+          {/* Terms - Only on signup */}
+          {mode === 'signup' && (
+            <p className="mt-6 text-xs text-center text-muted-foreground">
+              By creating an account, you agree to our{' '}
+              <button type="button" className="underline hover:text-foreground">Terms of Service</button>
+              {' '}and{' '}
+              <button type="button" className="underline hover:text-foreground">Privacy Policy</button>
+            </p>
+          )}
         </div>
       </div>
     </div>
