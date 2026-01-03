@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Search, Plus, User, MoreVertical, Clock, Calendar, X } from 'lucide-react';
 
@@ -28,6 +29,7 @@ interface Employee {
 }
 
 export default function HRDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('employees');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -39,9 +41,17 @@ export default function HRDashboard() {
       emp.position.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleTabChange = (value: string) => {
+    if (value === 'attendance') {
+      navigate('/hr/attendance');
+    } else {
+      setActiveTab(value);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <Navbar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navbar tabs={tabs} activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="container mx-auto px-6 py-8">
         {activeTab === 'employees' && (
@@ -52,8 +62,6 @@ export default function HRDashboard() {
             onSelectEmployee={setSelectedEmployee}
           />
         )}
-
-        {activeTab === 'attendance' && <AttendanceTab />}
 
         {activeTab === 'time-off' && <TimeOffTab />}
       </main>
@@ -131,63 +139,6 @@ function EmployeesTab({
           <p className="text-muted-foreground">No employees found</p>
         </div>
       )}
-    </div>
-  );
-}
-
-function AttendanceTab() {
-  const attendanceData = [
-    { name: 'John Smith', date: '2024-01-15', checkIn: '09:00', checkOut: '17:30', status: 'present' },
-    { name: 'Emily Chen', date: '2024-01-15', checkIn: '08:45', checkOut: '17:15', status: 'present' },
-    { name: 'Michael Brown', date: '2024-01-15', checkIn: '09:30', checkOut: '18:00', status: 'late' },
-    { name: 'Sarah Wilson', date: '2024-01-15', checkIn: '-', checkOut: '-', status: 'absent' },
-  ];
-
-  return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Attendance</h1>
-        <p className="text-muted-foreground mt-1">Track employee attendance records</p>
-      </div>
-
-      <div className="card-elevated overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Employee</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Date</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Check In</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Check Out</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendanceData.map((record, index) => (
-                <tr key={index} className="border-b border-border last:border-0 hover:bg-secondary/50">
-                  <td className="px-6 py-4 text-sm font-medium text-foreground">{record.name}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{record.date}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{record.checkIn}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{record.checkOut}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`status-badge ${
-                        record.status === 'present'
-                          ? 'status-active'
-                          : record.status === 'late'
-                          ? 'status-pending'
-                          : 'status-inactive'
-                      }`}
-                    >
-                      {record.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
