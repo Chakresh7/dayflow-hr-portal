@@ -1,15 +1,20 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 type UserRole = 'HR' | 'EMPLOYEE' | null;
 
-interface User {
+interface Profile {
   id: string;
+  user_id: string;
   name: string;
   email: string;
-  role: UserRole;
-  avatar?: string;
+  avatar_url?: string;
   department?: string;
   position?: string;
+  phone?: string;
+  company?: string;
+  employee_id?: string;
 }
 
 interface SignupData {
@@ -24,101 +29,160 @@ interface SignupData {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
+  profile: Profile | null;
   userRole: UserRole;
   isFirstLogin: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (data: SignupData) => Promise<{ success: boolean; error?: string; role?: UserRole }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   completePasswordChange: () => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demo
-const mockUsers = [
-  {
-    id: '1',
-    email: 'hr@dayflow.com',
-    password: 'password123',
-    name: 'Sarah Johnson',
-    role: 'HR' as UserRole,
-    isFirstLogin: false,
-    department: 'Human Resources',
-    position: 'HR Manager',
-  },
-  {
-    id: '2',
-    email: 'employee@dayflow.com',
-    password: 'password123',
-    name: 'John Smith',
-    role: 'EMPLOYEE' as UserRole,
-    isFirstLogin: true,
-    department: 'Engineering',
-    position: 'Software Developer',
-  },
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>(null);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
+  const fetchProfile = async (userId: string) => {
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-    const foundUser = mockUsers.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-
-    if (foundUser) {
-      setUser({
-        id: foundUser.id,
-        name: foundUser.name,
-        email: foundUser.email,
-        role: foundUser.role,
-        department: foundUser.department,
-        position: foundUser.position,
-      });
-      setIsAuthenticated(true);
-      setIsFirstLogin(foundUser.isFirstLogin);
-      return { success: true };
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      return;
     }
 
-    return { success: false, error: 'Invalid email or password' };
+    if (profileData) {
+      setProfile(profileData as Profile);
+    }
+  };
+
+  const fetchRole = async (userId: string) => {
+    const { data: roleData, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (roleError) {
+      console.error('Error fetching role:', roleError);
+      return;
+    }
+
+    if (roleData) {
+      setUserRole(roleData.role as UserRole);
+    }
+  };
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        // Defer Supabase calls with setTimeout to prevent deadlock
+        if (session?.user) {
+          setTimeout(() => {
+            fetchProfile(session.user.id);
+            fetchRole(session.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+          setUserRole(null);
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setProfile(null);
+          setUserRole(null);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        fetchProfile(session.user.id);
+        fetchRole(session.user.id);
+      }
+
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (data.user) {
+      await fetchProfile(data.user.id);
+      await fetchRole(data.user.id);
+    }
+
+    return { success: true };
   };
 
   const signup = async (data: SignupData): Promise<{ success: boolean; error?: string; role?: UserRole }> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const redirectUrl = `${window.location.origin}/`;
 
-    // Check if email already exists
-    const existingUser = mockUsers.find(u => u.email.toLowerCase() === data.email.toLowerCase());
-    if (existingUser) {
-      return { success: false, error: 'An account with this email already exists' };
+    const { data: authData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          name: data.name,
+          company: data.company,
+          phone: data.phone,
+          role: data.role,
+        },
+      },
+    });
+
+    if (error) {
+      if (error.message.includes('already registered')) {
+        return { success: false, error: 'An account with this email already exists' };
+      }
+      return { success: false, error: error.message };
     }
 
-    // Create new user (mock - in real app this would be saved to DB)
-    // Use the role selected during signup
-    const newUser: User = {
-      id: String(mockUsers.length + 1),
-      name: data.name,
-      email: data.email,
-      role: data.role,
-      department: data.role === 'HR' ? 'Human Resources' : 'General',
-      position: data.role === 'HR' ? 'HR Manager' : 'Employee',
-    };
-
-    setUser(newUser);
-    setIsAuthenticated(true);
-    setIsFirstLogin(false);
+    if (authData.user) {
+      // Wait a moment for the trigger to create profile and role
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await fetchProfile(authData.user.id);
+      await fetchRole(authData.user.id);
+    }
 
     return { success: true, role: data.role };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    setIsAuthenticated(false);
+    setSession(null);
+    setProfile(null);
+    setUserRole(null);
     setIsFirstLogin(false);
   };
 
@@ -126,17 +190,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsFirstLogin(false);
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+      await fetchRole(user.id);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated,
+        isAuthenticated: !!session,
         user,
-        userRole: user?.role ?? null,
+        profile,
+        userRole,
         isFirstLogin,
+        isLoading,
         login,
         signup,
         logout,
         completePasswordChange,
+        refreshProfile,
       }}
     >
       {children}

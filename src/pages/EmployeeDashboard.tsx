@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { User, Clock, Calendar, DollarSign, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
 
 export default function EmployeeDashboard() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -19,7 +19,7 @@ export default function EmployeeDashboard() {
       <main className="container mx-auto px-6 py-8">
         {/* Greeting */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-foreground">Welcome back, {user?.name?.split(' ')[0]}</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Welcome back, {profile?.name?.split(' ')[0]}</h1>
           <p className="text-muted-foreground mt-1">{currentDate}</p>
         </div>
 
@@ -38,7 +38,7 @@ export default function EmployeeDashboard() {
         {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Profile Card */}
-          <ProfileCard user={user} />
+          <ProfileCard profile={profile} />
 
           {/* Attendance Card */}
           <AttendanceCard />
@@ -54,7 +54,7 @@ export default function EmployeeDashboard() {
   );
 }
 
-function ProfileCard({ user }: { user: any }) {
+function ProfileCard({ profile }: { profile: any }) {
   return (
     <div className="card-elevated p-6">
       <div className="flex items-center justify-between mb-4">
@@ -69,9 +69,9 @@ function ProfileCard({ user }: { user: any }) {
           <User className="w-8 h-8 text-muted-foreground" />
         </div>
         <div>
-          <h3 className="font-medium text-foreground">{user?.name}</h3>
-          <p className="text-sm text-muted-foreground">{user?.position}</p>
-          <p className="text-sm text-muted-foreground">{user?.department}</p>
+          <h3 className="font-medium text-foreground">{profile?.name}</h3>
+          <p className="text-sm text-muted-foreground">{profile?.position}</p>
+          <p className="text-sm text-muted-foreground">{profile?.department}</p>
         </div>
       </div>
 
@@ -79,11 +79,11 @@ function ProfileCard({ user }: { user: any }) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">Email</p>
-            <p className="text-foreground">{user?.email}</p>
+            <p className="text-foreground">{profile?.email}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Employee ID</p>
-            <p className="text-foreground">EMP-{user?.id?.padStart(4, '0')}</p>
+            <p className="text-foreground">{profile?.employee_id || 'N/A'}</p>
           </div>
         </div>
       </div>

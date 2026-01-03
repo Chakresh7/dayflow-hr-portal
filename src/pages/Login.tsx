@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Eye, EyeOff, Loader2, Shield, Users } from 'lucide-react';
@@ -21,8 +21,20 @@ export default function Login() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, signup, userRole, isFirstLogin } = useAuth();
+  const { login, signup, isAuthenticated, userRole, isFirstLogin, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && userRole) {
+      if (isFirstLogin) {
+        navigate('/change-password');
+      } else {
+        const redirectPath = userRole === 'HR' ? '/hr/dashboard' : '/employee/dashboard';
+        navigate(redirectPath);
+      }
+    }
+  }, [isAuthenticated, userRole, isFirstLogin, navigate]);
 
   const resetForm = () => {
     setEmail('');
@@ -48,16 +60,10 @@ export default function Login() {
 
     const result = await login(email, password);
 
-    if (result.success) {
-      if (isFirstLogin) {
-        navigate('/change-password');
-      } else {
-        const redirectPath = userRole === 'HR' ? '/hr/dashboard' : '/employee/dashboard';
-        navigate(redirectPath);
-      }
-    } else {
+    if (!result.success) {
       setError(result.error || 'Login failed');
     }
+    // Navigation is handled by the useEffect
 
     setIsLoading(false);
   };
@@ -80,15 +86,21 @@ export default function Login() {
 
     const result = await signup({ name, email, password, company, phone, role: selectedRole });
 
-    if (result.success) {
-      const redirectPath = result.role === 'HR' ? '/hr/dashboard' : '/employee/dashboard';
-      navigate(redirectPath);
-    } else {
+    if (!result.success) {
       setError(result.error || 'Signup failed');
     }
+    // Navigation is handled by the useEffect
 
     setIsLoading(false);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
