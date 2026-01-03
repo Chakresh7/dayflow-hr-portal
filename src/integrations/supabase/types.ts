@@ -14,6 +14,237 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          check_in: string | null
+          check_out: string | null
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          status: string
+          total_hours: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          total_hours?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          total_hours?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      employee_details: {
+        Row: {
+          about: string | null
+          break_time_hours: number | null
+          certifications: string[] | null
+          created_at: string
+          hire_date: string | null
+          id: string
+          interests: string | null
+          job_love: string | null
+          location: string | null
+          manager_id: string | null
+          skills: string[] | null
+          updated_at: string
+          user_id: string
+          working_days_per_week: number | null
+        }
+        Insert: {
+          about?: string | null
+          break_time_hours?: number | null
+          certifications?: string[] | null
+          created_at?: string
+          hire_date?: string | null
+          id?: string
+          interests?: string | null
+          job_love?: string | null
+          location?: string | null
+          manager_id?: string | null
+          skills?: string[] | null
+          updated_at?: string
+          user_id: string
+          working_days_per_week?: number | null
+        }
+        Update: {
+          about?: string | null
+          break_time_hours?: number | null
+          certifications?: string[] | null
+          created_at?: string
+          hire_date?: string | null
+          id?: string
+          interests?: string | null
+          job_love?: string | null
+          location?: string | null
+          manager_id?: string | null
+          skills?: string[] | null
+          updated_at?: string
+          user_id?: string
+          working_days_per_week?: number | null
+        }
+        Relationships: []
+      }
+      leave_balances: {
+        Row: {
+          created_at: string
+          id: string
+          personal_days: number
+          personal_used: number
+          sick_days: number
+          sick_used: number
+          updated_at: string
+          user_id: string
+          vacation_days: number
+          vacation_used: number
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          personal_days?: number
+          personal_used?: number
+          sick_days?: number
+          sick_used?: number
+          updated_at?: string
+          user_id: string
+          vacation_days?: number
+          vacation_used?: number
+          year?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          personal_days?: number
+          personal_used?: number
+          sick_days?: number
+          sick_used?: number
+          updated_at?: string
+          user_id?: string
+          vacation_days?: number
+          vacation_used?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      leave_requests: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["leave_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["leave_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          leave_type?: Database["public"]["Enums"]["leave_type"]
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["leave_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payroll: {
+        Row: {
+          allowances: number
+          basic_salary: number
+          bonus: number
+          created_at: string
+          deductions: number
+          hra: number
+          id: string
+          month: number
+          net_pay: number
+          pay_date: string | null
+          status: string
+          tax: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          allowances?: number
+          basic_salary?: number
+          bonus?: number
+          created_at?: string
+          deductions?: number
+          hra?: number
+          id?: string
+          month: number
+          net_pay?: number
+          pay_date?: string | null
+          status?: string
+          tax?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          allowances?: number
+          basic_salary?: number
+          bonus?: number
+          created_at?: string
+          deductions?: number
+          hra?: number
+          id?: string
+          month?: number
+          net_pay?: number
+          pay_date?: string | null
+          status?: string
+          tax?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -99,6 +330,14 @@ export type Database = {
     }
     Enums: {
       app_role: "HR" | "EMPLOYEE"
+      leave_status: "pending" | "approved" | "rejected" | "cancelled"
+      leave_type:
+        | "vacation"
+        | "sick"
+        | "personal"
+        | "unpaid"
+        | "maternity"
+        | "paternity"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -227,6 +466,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["HR", "EMPLOYEE"],
+      leave_status: ["pending", "approved", "rejected", "cancelled"],
+      leave_type: [
+        "vacation",
+        "sick",
+        "personal",
+        "unpaid",
+        "maternity",
+        "paternity",
+      ],
     },
   },
 } as const
