@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Shield, Users } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup';
+type RoleType = 'HR' | 'EMPLOYEE';
 
 export default function Login() {
   const [mode, setMode] = useState<AuthMode>('login');
@@ -13,6 +14,7 @@ export default function Login() {
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [phone, setPhone] = useState('');
+  const [selectedRole, setSelectedRole] = useState<RoleType>('EMPLOYEE');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -28,6 +30,7 @@ export default function Login() {
     setName('');
     setCompany('');
     setPhone('');
+    setSelectedRole('EMPLOYEE');
     setError('');
     setSuccess('');
   };
@@ -74,10 +77,9 @@ export default function Login() {
 
     setIsLoading(true);
 
-    const result = await signup({ name, email, password, company, phone });
+    const result = await signup({ name, email, password, company, phone, role: selectedRole });
 
     if (result.success) {
-      // Redirect to dashboard after signup
       const redirectPath = result.role === 'HR' ? '/hr/dashboard' : '/employee/dashboard';
       navigate(redirectPath);
     } else {
@@ -123,6 +125,43 @@ export default function Login() {
             {/* Signup Fields */}
             {mode === 'signup' && (
               <>
+                {/* Role Selection */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    Select Your Role
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRole('HR')}
+                      disabled={isLoading}
+                      className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                        selectedRole === 'HR'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border hover:border-primary/50 text-muted-foreground'
+                      }`}
+                    >
+                      <Shield className="w-6 h-6" />
+                      <span className="font-medium text-sm">Admin / HR</span>
+                      <span className="text-xs opacity-70">Full access</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRole('EMPLOYEE')}
+                      disabled={isLoading}
+                      className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                        selectedRole === 'EMPLOYEE'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border hover:border-primary/50 text-muted-foreground'
+                      }`}
+                    >
+                      <Users className="w-6 h-6" />
+                      <span className="font-medium text-sm">Employee</span>
+                      <span className="text-xs opacity-70">Limited access</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Company Field */}
                 <div className="space-y-2">
                   <label htmlFor="company" className="block text-sm font-medium text-foreground">

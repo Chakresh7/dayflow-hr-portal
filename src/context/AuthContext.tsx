@@ -18,6 +18,7 @@ interface SignupData {
   password: string;
   company: string;
   phone: string;
+  role: 'HR' | 'EMPLOYEE';
 }
 
 interface AuthContextType {
@@ -98,21 +99,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Create new user (mock - in real app this would be saved to DB)
-    // New signups are assigned HR role by default (as they're creating a company)
+    // Use the role selected during signup
     const newUser: User = {
       id: String(mockUsers.length + 1),
       name: data.name,
       email: data.email,
-      role: 'HR',
-      department: 'Administration',
-      position: 'Admin',
+      role: data.role,
+      department: data.role === 'HR' ? 'Human Resources' : 'General',
+      position: data.role === 'HR' ? 'HR Manager' : 'Employee',
     };
 
     setUser(newUser);
     setIsAuthenticated(true);
     setIsFirstLogin(false);
 
-    return { success: true, role: 'HR' };
+    return { success: true, role: data.role };
   };
 
   const logout = () => {
