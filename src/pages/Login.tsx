@@ -11,6 +11,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [company, setCompany] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -24,6 +26,8 @@ export default function Login() {
     setPassword('');
     setConfirmPassword('');
     setName('');
+    setCompany('');
+    setPhone('');
     setError('');
     setSuccess('');
   };
@@ -118,23 +122,43 @@ export default function Login() {
               </div>
             )}
 
-            {/* Name Field - Signup Only */}
+            {/* Signup Fields */}
             {mode === 'signup' && (
-              <div className="space-y-2">
-                <label htmlFor="name" className="block text-sm font-medium text-foreground">
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="John Smith"
-                  className="input-field"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+              <>
+                {/* Company Field */}
+                <div className="space-y-2">
+                  <label htmlFor="company" className="block text-sm font-medium text-foreground">
+                    Company
+                  </label>
+                  <input
+                    id="company"
+                    type="text"
+                    value={company}
+                    onChange={e => setCompany(e.target.value)}
+                    placeholder="Acme Inc."
+                    className="input-field"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {/* Name Field */}
+                <div className="space-y-2">
+                  <label htmlFor="name" className="block text-sm font-medium text-foreground">
+                    Full Name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="John Smith"
+                    className="input-field"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+              </>
             )}
 
             {/* Email Field */}
@@ -153,6 +177,25 @@ export default function Login() {
                 disabled={isLoading}
               />
             </div>
+
+            {/* Phone Field - Signup Only */}
+            {mode === 'signup' && (
+              <div className="space-y-2">
+                <label htmlFor="phone" className="block text-sm font-medium text-foreground">
+                  Phone Number
+                </label>
+                <input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+1 (555) 123-4567"
+                  className="input-field"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            )}
 
             {/* Password Field */}
             <div className="space-y-2">
