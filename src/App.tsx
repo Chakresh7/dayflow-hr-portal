@@ -11,6 +11,7 @@ import HRDashboard from "./pages/HRDashboard";
 import HRProfile from "./pages/HRProfile";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import EmployeeProfile from "./pages/EmployeeProfile";
+import Attendance from "./pages/Attendance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,10 +56,28 @@ const App = () => (
             />
             
             <Route
+              path="/hr/attendance"
+              element={
+                <ProtectedRoute allowedRoles={['HR']}>
+                  <Attendance />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
               path="/employee/dashboard"
               element={
                 <ProtectedRoute allowedRoles={['EMPLOYEE']}>
                   <EmployeeDashboard />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/employee/attendance"
+              element={
+                <ProtectedRoute allowedRoles={['EMPLOYEE']}>
+                  <Attendance />
                 </ProtectedRoute>
               }
             />
