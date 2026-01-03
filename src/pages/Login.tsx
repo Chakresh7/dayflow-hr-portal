@@ -18,7 +18,7 @@ export default function Login() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, userRole, isFirstLogin } = useAuth();
+  const { login, signup, userRole, isFirstLogin } = useAuth();
   const navigate = useNavigate();
 
   const resetForm = () => {
@@ -74,19 +74,17 @@ export default function Login() {
 
     setIsLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const result = await signup({ name, email, password, company, phone });
 
-    // Mock signup success
-    setSuccess('Account created successfully! Please sign in.');
+    if (result.success) {
+      // Redirect to dashboard after signup
+      const redirectPath = result.role === 'HR' ? '/hr/dashboard' : '/employee/dashboard';
+      navigate(redirectPath);
+    } else {
+      setError(result.error || 'Signup failed');
+    }
+
     setIsLoading(false);
-    
-    // Switch to login mode after short delay
-    setTimeout(() => {
-      setMode('login');
-      setPassword('');
-      setSuccess('');
-    }, 2000);
   };
 
   return (
