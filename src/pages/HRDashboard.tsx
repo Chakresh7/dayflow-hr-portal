@@ -206,32 +206,45 @@ function EmployeesTab({
               New Employee
             </button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle>Add New Employee</DialogTitle>
+              <DialogTitle className="text-lg">Add New Employee</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="name" className="text-xs">Full Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="phone" className="text-xs">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    className="h-9"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-xs">Email *</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
                   required
+                  className="h-9"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Temporary Password</Label>
+              <div className="space-y-1">
+                <Label htmlFor="password" className="text-xs">Temporary Password *</Label>
                 <Input
                   id="password"
                   type="password"
@@ -239,39 +252,36 @@ function EmployeesTab({
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
                   required
                   minLength={6}
+                  className="h-9"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="department" className="text-xs">Department</Label>
+                  <Input
+                    id="department"
+                    value={formData.department}
+                    onChange={e => setFormData({ ...formData, department: e.target.value })}
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="position" className="text-xs">Position</Label>
+                  <Input
+                    id="position"
+                    value={formData.position}
+                    onChange={e => setFormData({ ...formData, position: e.target.value })}
+                    className="h-9"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={e => setFormData({ ...formData, department: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="position">Position</Label>
-                <Input
-                  id="position"
-                  value={formData.position}
-                  onChange={e => setFormData({ ...formData, position: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
+              <div className="space-y-1">
+                <Label htmlFor="role" className="text-xs">Role *</Label>
                 <Select
                   value={formData.role}
                   onValueChange={(value: 'EMPLOYEE' | 'HR') => setFormData({ ...formData, role: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,12 +290,12 @@ function EmployeesTab({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setIsDialogOpen(false)}>
+              <div className="flex gap-2 pt-2">
+                <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" disabled={submitting}>
-                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Employee'}
+                <Button type="submit" size="sm" className="flex-1" disabled={submitting}>
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
                 </Button>
               </div>
             </form>
