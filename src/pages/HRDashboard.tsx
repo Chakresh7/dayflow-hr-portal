@@ -1,17 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
-import { Search, Plus, User, MoreVertical, Clock, Calendar, X } from 'lucide-react';
-
-// Mock employee data
-const mockEmployees = [
-  { id: '1', name: 'John Smith', email: 'john@dayflow.com', department: 'Engineering', position: 'Software Developer', status: 'active' },
-  { id: '2', name: 'Emily Chen', email: 'emily@dayflow.com', department: 'Design', position: 'UI/UX Designer', status: 'active' },
-  { id: '3', name: 'Michael Brown', email: 'michael@dayflow.com', department: 'Marketing', position: 'Marketing Manager', status: 'active' },
-  { id: '4', name: 'Sarah Wilson', email: 'sarah@dayflow.com', department: 'Sales', position: 'Sales Representative', status: 'inactive' },
-  { id: '5', name: 'David Lee', email: 'david@dayflow.com', department: 'Engineering', position: 'Senior Developer', status: 'active' },
-  { id: '6', name: 'Lisa Anderson', email: 'lisa@dayflow.com', department: 'HR', position: 'HR Coordinator', status: 'active' },
-];
+import { Search, Plus, User, MoreVertical, Clock, Calendar, X, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 const tabs = [
   { label: 'Employees', value: 'employees' },
@@ -21,11 +18,24 @@ const tabs = [
 
 interface Employee {
   id: string;
+  user_id: string;
   name: string;
   email: string;
-  department: string;
-  position: string;
+  department: string | null;
+  position: string | null;
+  employee_id: string | null;
+  avatar_url: string | null;
+}
+
+interface LeaveRequest {
+  id: string;
+  user_id: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
   status: string;
+  reason: string | null;
+  profiles: { name: string } | null;
 }
 
 export default function HRDashboard() {
@@ -33,12 +43,35 @@ export default function HRDashboard() {
   const [activeTab, setActiveTab] = useState('employees');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredEmployees = mockEmployees.filter(
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, user_id, name, email, department, position, employee_id, avatar_url');
+
+      if (error) throw error;
+      setEmployees(data || []);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      toast.error('Failed to fetch employees');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredEmployees = employees.filter(
     emp =>
       emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.position.toLowerCase().includes(searchQuery.toLowerCase())
+      (emp.department?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (emp.position?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
   const handleTabChange = (value: string) => {
@@ -60,6 +93,8 @@ export default function HRDashboard() {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onSelectEmployee={setSelectedEmployee}
+            loading={loading}
+            onEmployeeAdded={fetchEmployees}
           />
         )}
 
@@ -79,12 +114,83 @@ function EmployeesTab({
   searchQuery,
   onSearchChange,
   onSelectEmployee,
+  loading,
+  onEmployeeAdded,
 }: {
   employees: Employee[];
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onSelectEmployee: (employee: Employee) => void;
+  loading: boolean;
+  onEmployeeAdded: () => void;
 }) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    department: '',
+    position: '',
+    phone: '',
+    role: 'EMPLOYEE' as 'EMPLOYEE' | 'HR',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      // Create user via Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+            role: formData.role,
+            phone: formData.phone,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Update the profile with additional info
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            department: formData.department,
+            position: formData.position,
+          })
+          .eq('user_id', authData.user.id);
+
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+        }
+      }
+
+      toast.success('Employee added successfully');
+      setIsDialogOpen(false);
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        department: '',
+        position: '',
+        phone: '',
+        role: 'EMPLOYEE',
+      });
+      onEmployeeAdded();
+    } catch (error: any) {
+      console.error('Error adding employee:', error);
+      toast.error(error.message || 'Failed to add employee');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -93,10 +199,98 @@ function EmployeesTab({
           <h1 className="text-2xl font-semibold text-foreground">Employees</h1>
           <p className="text-muted-foreground mt-1">Manage your team members</p>
         </div>
-        <button className="btn-primary w-auto px-4 py-2.5 flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          New Employee
-        </button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <button className="btn-primary w-auto px-4 py-2.5 flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Employee
+            </button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Employee</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Temporary Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Input
+                  id="department"
+                  value={formData.department}
+                  onChange={e => setFormData({ ...formData, department: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="position">Position</Label>
+                <Input
+                  id="position"
+                  value={formData.position}
+                  onChange={e => setFormData({ ...formData, position: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value: 'EMPLOYEE' | 'HR') => setFormData({ ...formData, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                    <SelectItem value="HR">HR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1" disabled={submitting}>
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Employee'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Search */}
@@ -111,32 +305,45 @@ function EmployeesTab({
         />
       </div>
 
-      {/* Employee Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {employees.map(employee => (
-          <div
-            key={employee.id}
-            onClick={() => onSelectEmployee(employee)}
-            className="card-elevated p-5 cursor-pointer hover:border-foreground/20 transition-colors"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center">
-                <User className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <span className={`status-badge ${employee.status === 'active' ? 'status-active' : 'status-inactive'}`}>
-                {employee.status}
-              </span>
-            </div>
-            <h3 className="font-medium text-foreground mb-1">{employee.name}</h3>
-            <p className="text-sm text-muted-foreground">{employee.position}</p>
-            <p className="text-sm text-muted-foreground">{employee.department}</p>
-          </div>
-        ))}
-      </div>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
 
-      {employees.length === 0 && (
+      {/* Employee Grid */}
+      {!loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {employees.map(employee => (
+            <div
+              key={employee.id}
+              onClick={() => onSelectEmployee(employee)}
+              className="card-elevated p-5 cursor-pointer hover:border-foreground/20 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 bg-secondary rounded-full flex items-center justify-center overflow-hidden">
+                  {employee.avatar_url ? (
+                    <img src={employee.avatar_url} alt={employee.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-6 h-6 text-muted-foreground" />
+                  )}
+                </div>
+                <span className="status-badge status-active">active</span>
+              </div>
+              <h3 className="font-medium text-foreground mb-1">{employee.name}</h3>
+              <p className="text-sm text-muted-foreground">{employee.position || 'No position'}</p>
+              <p className="text-sm text-muted-foreground">{employee.department || 'No department'}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && employees.length === 0 && (
         <div className="text-center py-12">
+          <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">No employees found</p>
+          <p className="text-sm text-muted-foreground mt-1">Click "New Employee" to add your first team member</p>
         </div>
       )}
     </div>
@@ -144,11 +351,66 @@ function EmployeesTab({
 }
 
 function TimeOffTab() {
-  const timeOffRequests = [
-    { name: 'John Smith', type: 'Vacation', startDate: '2024-01-20', endDate: '2024-01-25', status: 'pending' },
-    { name: 'Emily Chen', type: 'Sick Leave', startDate: '2024-01-18', endDate: '2024-01-18', status: 'approved' },
-    { name: 'Michael Brown', type: 'Personal', startDate: '2024-01-22', endDate: '2024-01-22', status: 'rejected' },
-  ];
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLeaveRequests();
+  }, []);
+
+  const fetchLeaveRequests = async () => {
+    try {
+      // Fetch leave requests
+      const { data: requestsData, error: requestsError } = await supabase
+        .from('leave_requests')
+        .select('id, user_id, leave_type, start_date, end_date, status, reason')
+        .order('created_at', { ascending: false });
+
+      if (requestsError) throw requestsError;
+
+      // Fetch all profiles to map names
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, name');
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of user_id to name
+      const profileMap = new Map(profilesData?.map(p => [p.user_id, p.name]) || []);
+
+      // Combine the data
+      const combinedData = (requestsData || []).map(request => ({
+        ...request,
+        profiles: { name: profileMap.get(request.user_id) || 'Unknown' },
+      }));
+
+      setLeaveRequests(combinedData);
+    } catch (error) {
+      console.error('Error fetching leave requests:', error);
+      toast.error('Failed to fetch leave requests');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (requestId: string, newStatus: 'approved' | 'rejected') => {
+    try {
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({ 
+          status: newStatus,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', requestId);
+
+      if (error) throw error;
+      toast.success(`Leave request ${newStatus}`);
+      fetchLeaveRequests();
+    } catch (error) {
+      console.error('Error updating leave request:', error);
+      toast.error('Failed to update leave request');
+    }
+  };
 
   return (
     <div>
@@ -157,55 +419,134 @@ function TimeOffTab() {
         <p className="text-muted-foreground mt-1">Review and manage leave requests</p>
       </div>
 
-      <div className="card-elevated overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Employee</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Type</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Start Date</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">End Date</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {timeOffRequests.map((request, index) => (
-                <tr key={index} className="border-b border-border last:border-0 hover:bg-secondary/50">
-                  <td className="px-6 py-4 text-sm font-medium text-foreground">{request.name}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{request.type}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{request.startDate}</td>
-                  <td className="px-6 py-4 text-sm text-muted-foreground">{request.endDate}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`status-badge ${
-                        request.status === 'approved'
-                          ? 'status-active'
-                          : request.status === 'pending'
-                          ? 'status-pending'
-                          : 'status-inactive'
-                      }`}
-                    >
-                      {request.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button className="p-2 hover:bg-secondary rounded-lg transition-colors">
-                      <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </div>
+      )}
+
+      {!loading && leaveRequests.length === 0 && (
+        <div className="text-center py-12">
+          <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No leave requests found</p>
+        </div>
+      )}
+
+      {!loading && leaveRequests.length > 0 && (
+        <div className="card-elevated overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Employee</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Type</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Start Date</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">End Date</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaveRequests.map(request => (
+                  <tr key={request.id} className="border-b border-border last:border-0 hover:bg-secondary/50">
+                    <td className="px-6 py-4 text-sm font-medium text-foreground">
+                      {request.profiles?.name || 'Unknown'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground capitalize">{request.leave_type}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{request.start_date}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{request.end_date}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`status-badge ${
+                          request.status === 'approved'
+                            ? 'status-active'
+                            : request.status === 'pending'
+                            ? 'status-pending'
+                            : 'status-inactive'
+                        }`}
+                      >
+                        {request.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {request.status === 'pending' ? (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                            onClick={() => handleStatusUpdate(request.id, 'approved')}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-600 hover:bg-red-50"
+                            onClick={() => handleStatusUpdate(request.id, 'rejected')}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function EmployeeDetailPanel({ employee, onClose }: { employee: Employee; onClose: () => void }) {
+  const [leaveBalance, setLeaveBalance] = useState<{ vacation_days: number; sick_days: number; personal_days: number; vacation_used: number; sick_used: number; personal_used: number } | null>(null);
+  const [monthlyHours, setMonthlyHours] = useState<number>(0);
+
+  useEffect(() => {
+    fetchEmployeeStats();
+  }, [employee.user_id]);
+
+  const fetchEmployeeStats = async () => {
+    try {
+      // Fetch leave balance
+      const { data: leaveData } = await supabase
+        .from('leave_balances')
+        .select('vacation_days, sick_days, personal_days, vacation_used, sick_used, personal_used')
+        .eq('user_id', employee.user_id)
+        .eq('year', new Date().getFullYear())
+        .maybeSingle();
+
+      setLeaveBalance(leaveData);
+
+      // Fetch monthly attendance hours
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: attendanceData } = await supabase
+        .from('attendance')
+        .select('total_hours')
+        .eq('user_id', employee.user_id)
+        .gte('date', startOfMonth.toISOString().split('T')[0]);
+
+      const totalHours = attendanceData?.reduce((sum, record) => sum + (Number(record.total_hours) || 0), 0) || 0;
+      setMonthlyHours(totalHours);
+    } catch (error) {
+      console.error('Error fetching employee stats:', error);
+    }
+  };
+
+  const totalLeaveBalance = leaveBalance 
+    ? (leaveBalance.vacation_days - leaveBalance.vacation_used) + 
+      (leaveBalance.sick_days - leaveBalance.sick_used) + 
+      (leaveBalance.personal_days - leaveBalance.personal_used)
+    : 0;
+
   return (
     <>
       {/* Overlay */}
@@ -224,15 +565,17 @@ function EmployeeDetailPanel({ employee, onClose }: { employee: Employee; onClos
 
           {/* Profile */}
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center">
-              <User className="w-8 h-8 text-muted-foreground" />
+            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center overflow-hidden">
+              {employee.avatar_url ? (
+                <img src={employee.avatar_url} alt={employee.name} className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-8 h-8 text-muted-foreground" />
+              )}
             </div>
             <div>
               <h3 className="font-semibold text-foreground">{employee.name}</h3>
-              <p className="text-sm text-muted-foreground">{employee.position}</p>
-              <span className={`status-badge mt-2 ${employee.status === 'active' ? 'status-active' : 'status-inactive'}`}>
-                {employee.status}
-              </span>
+              <p className="text-sm text-muted-foreground">{employee.position || 'No position'}</p>
+              <span className="status-badge mt-2 status-active">active</span>
             </div>
           </div>
 
@@ -245,6 +588,12 @@ function EmployeeDetailPanel({ employee, onClose }: { employee: Employee; onClos
                   <span className="text-muted-foreground">Email:</span>{' '}
                   <span className="text-foreground">{employee.email}</span>
                 </p>
+                {employee.employee_id && (
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Employee ID:</span>{' '}
+                    <span className="text-foreground">{employee.employee_id}</span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -253,11 +602,11 @@ function EmployeeDetailPanel({ employee, onClose }: { employee: Employee; onClos
               <div className="space-y-2">
                 <p className="text-sm">
                   <span className="text-muted-foreground">Department:</span>{' '}
-                  <span className="text-foreground">{employee.department}</span>
+                  <span className="text-foreground">{employee.department || 'Not assigned'}</span>
                 </p>
                 <p className="text-sm">
                   <span className="text-muted-foreground">Position:</span>{' '}
-                  <span className="text-foreground">{employee.position}</span>
+                  <span className="text-foreground">{employee.position || 'Not assigned'}</span>
                 </p>
               </div>
             </div>
@@ -268,14 +617,14 @@ function EmployeeDetailPanel({ employee, onClose }: { employee: Employee; onClos
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-foreground">160h</p>
+                    <p className="text-sm font-medium text-foreground">{monthlyHours.toFixed(1)}h</p>
                     <p className="text-xs text-muted-foreground">This month</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-foreground">12 days</p>
+                    <p className="text-sm font-medium text-foreground">{totalLeaveBalance} days</p>
                     <p className="text-xs text-muted-foreground">Leave balance</p>
                   </div>
                 </div>
