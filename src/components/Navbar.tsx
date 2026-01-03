@@ -51,7 +51,13 @@ export function Navbar({ tabs, activeTab, onTabChange }: NavbarProps) {
 
           {/* Right Section */}
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-3">
+            <button
+              onClick={() => {
+                const profilePath = user?.role === 'HR' ? '/hr/profile' : '/employee/profile';
+                navigate(profilePath);
+              }}
+              className="hidden sm:flex items-center gap-3 hover:bg-secondary/50 rounded-lg px-2 py-1 transition-colors cursor-pointer"
+            >
               <div className="text-right">
                 <p className="text-sm font-medium text-foreground">{user?.name}</p>
                 <p className="text-xs text-muted-foreground">{user?.role}</p>
@@ -59,7 +65,7 @@ export function Navbar({ tabs, activeTab, onTabChange }: NavbarProps) {
               <div className="w-9 h-9 bg-secondary rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-muted-foreground" />
               </div>
-            </div>
+            </button>
             <button
               onClick={handleLogout}
               className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"

@@ -8,7 +8,9 @@ import { ProtectedRoute } from "@/routes/ProtectedRoute";
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
 import HRDashboard from "./pages/HRDashboard";
+import HRProfile from "./pages/HRProfile";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
+import EmployeeProfile from "./pages/EmployeeProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,10 +46,28 @@ const App = () => (
             />
             
             <Route
+              path="/hr/profile"
+              element={
+                <ProtectedRoute allowedRoles={['HR']}>
+                  <HRProfile />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
               path="/employee/dashboard"
               element={
                 <ProtectedRoute allowedRoles={['EMPLOYEE']}>
                   <EmployeeDashboard />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/employee/profile"
+              element={
+                <ProtectedRoute allowedRoles={['EMPLOYEE']}>
+                  <EmployeeProfile />
                 </ProtectedRoute>
               }
             />
