@@ -9,7 +9,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ tabs, activeTab, onTabChange }: NavbarProps) {
-  const { user, logout } = useAuth();
+  const { profile, userRole, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -53,14 +53,14 @@ export function Navbar({ tabs, activeTab, onTabChange }: NavbarProps) {
           <div className="flex items-center gap-4">
             <button
               onClick={() => {
-                const profilePath = user?.role === 'HR' ? '/hr/profile' : '/employee/profile';
+                const profilePath = userRole === 'HR' ? '/hr/profile' : '/employee/profile';
                 navigate(profilePath);
               }}
               className="hidden sm:flex items-center gap-3 hover:bg-secondary/50 rounded-lg px-2 py-1 transition-colors cursor-pointer"
             >
               <div className="text-right">
-                <p className="text-sm font-medium text-foreground">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">{user?.role}</p>
+                <p className="text-sm font-medium text-foreground">{profile?.name}</p>
+                <p className="text-xs text-muted-foreground">{userRole}</p>
               </div>
               <div className="w-9 h-9 bg-secondary rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-muted-foreground" />

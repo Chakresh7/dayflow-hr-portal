@@ -228,7 +228,7 @@ function ResumeTab() {
 }
 
 export default function HRProfile() {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState('resume');
 
   return (
@@ -251,16 +251,16 @@ export default function HRProfile() {
               </div>
               
               <div className="space-y-2">
-                <h1 className="text-2xl font-bold text-foreground">{user?.name || 'My Name'}</h1>
+                <h1 className="text-2xl font-bold text-foreground">{profile?.name || 'My Name'}</h1>
                 <div className="space-y-1 text-sm text-muted-foreground">
                   <p className="flex items-center gap-2">
-                    <span className="font-medium">Login ID:</span> {mockProfileData.loginId}
+                    <span className="font-medium">Login ID:</span> {profile?.employee_id || mockProfileData.loginId}
                   </p>
                   <p className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" /> {user?.email || 'email@example.com'}
+                    <Mail className="w-4 h-4" /> {profile?.email || 'email@example.com'}
                   </p>
                   <p className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" /> {mockProfileData.mobile}
+                    <Phone className="w-4 h-4" /> {profile?.phone || mockProfileData.mobile}
                   </p>
                 </div>
               </div>
@@ -270,11 +270,11 @@ export default function HRProfile() {
             <div className="lg:ml-auto grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
               <div>
                 <p className="text-muted-foreground">Company</p>
-                <p className="font-medium text-foreground">{mockProfileData.company}</p>
+                <p className="font-medium text-foreground">{profile?.company || mockProfileData.company}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Department</p>
-                <p className="font-medium text-foreground">{mockProfileData.department}</p>
+                <p className="font-medium text-foreground">{profile?.department || mockProfileData.department}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Manager</p>
