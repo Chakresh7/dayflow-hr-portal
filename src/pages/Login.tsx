@@ -3,17 +3,37 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
+type AuthMode = 'login' | 'signup';
+
 export default function Login() {
+  const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const { login, userRole, isFirstLogin } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setName('');
+    setError('');
+    setSuccess('');
+  };
+
+  const toggleMode = () => {
+    resetForm();
+    setMode(mode === 'login' ? 'signup' : 'login');
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -21,11 +41,9 @@ export default function Login() {
     const result = await login(email, password);
 
     if (result.success) {
-      // Check if first login - redirect to change password
       if (isFirstLogin) {
         navigate('/change-password');
       } else {
-        // Redirect based on role
         const redirectPath = userRole === 'HR' ? '/hr/dashboard' : '/employee/dashboard';
         navigate(redirectPath);
       }
@@ -34,6 +52,37 @@ export default function Login() {
     }
 
     setIsLoading(false);
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Mock signup success
+    setSuccess('Account created successfully! Please sign in.');
+    setIsLoading(false);
+    
+    // Switch to login mode after short delay
+    setTimeout(() => {
+      setMode('login');
+      setPassword('');
+      setSuccess('');
+    }, 2000);
   };
 
   return (
@@ -48,9 +97,13 @@ export default function Login() {
           <p className="text-muted-foreground">Every workday, perfectly aligned.</p>
         </div>
 
-        {/* Login Card */}
+        {/* Auth Card */}
         <div className="card-elevated p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <h2 className="text-xl font-semibold text-foreground text-center mb-6">
+            {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
+          </h2>
+
+          <form onSubmit={mode === 'login' ? handleLogin : handleSignup} className="space-y-5">
             {/* Error Message */}
             {error && (
               <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -58,10 +111,36 @@ export default function Login() {
               </div>
             )}
 
+            {/* Success Message */}
+            {success && (
+              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <p className="text-sm text-green-600">{success}</p>
+              </div>
+            )}
+
+            {/* Name Field - Signup Only */}
+            {mode === 'signup' && (
+              <div className="space-y-2">
+                <label htmlFor="name" className="block text-sm font-medium text-foreground">
+                  Full Name
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="John Smith"
+                  className="input-field"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+
             {/* Email Field */}
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-foreground">
-                Login ID or Email
+                {mode === 'login' ? 'Login ID or Email' : 'Email'}
               </label>
               <input
                 id="email"
@@ -101,28 +180,47 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Confirm Password Field - Signup Only */}
+            {mode === 'signup' && (
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="input-field"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            )}
+
             {/* Submit Button */}
             <button type="submit" className="btn-primary flex items-center justify-center gap-2" disabled={isLoading}>
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading 
+                ? (mode === 'login' ? 'Signing in...' : 'Creating account...') 
+                : (mode === 'login' ? 'Sign in' : 'Create account')
+              }
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-xs text-muted-foreground text-center mb-3">Demo Credentials</p>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-secondary rounded-lg">
-                <p className="font-medium text-foreground mb-1">HR Admin</p>
-                <p className="text-muted-foreground">hr@dayflow.com</p>
-                <p className="text-muted-foreground">password123</p>
-              </div>
-              <div className="p-3 bg-secondary rounded-lg">
-                <p className="font-medium text-foreground mb-1">Employee</p>
-                <p className="text-muted-foreground">employee@dayflow.com</p>
-                <p className="text-muted-foreground">password123</p>
-              </div>
-            </div>
+          {/* Toggle Mode */}
+          <div className="mt-6 pt-6 border-t border-border text-center">
+            <p className="text-sm text-muted-foreground">
+              {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}
+              <button
+                type="button"
+                onClick={toggleMode}
+                className="text-foreground font-medium hover:underline"
+              >
+                {mode === 'login' ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
           </div>
         </div>
       </div>
