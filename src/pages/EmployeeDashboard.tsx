@@ -1,9 +1,18 @@
+import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { User, Clock, Calendar, DollarSign, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
+import { User, Clock, Calendar, DollarSign, ArrowRight, CheckCircle, XCircle, Plus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 export default function EmployeeDashboard() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
 
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -29,10 +38,12 @@ export default function EmployeeDashboard() {
             <Clock className="w-5 h-5 text-foreground mb-2" />
             <span className="text-sm font-medium text-foreground">Clock In</span>
           </button>
-          <button className="card-elevated p-4 text-left hover:border-foreground/20 transition-colors">
-            <Calendar className="w-5 h-5 text-foreground mb-2" />
-            <span className="text-sm font-medium text-foreground">Request Leave</span>
-          </button>
+          <LeaveRequestDialog userId={user?.id}>
+            <button className="card-elevated p-4 text-left hover:border-foreground/20 transition-colors w-full">
+              <Calendar className="w-5 h-5 text-foreground mb-2" />
+              <span className="text-sm font-medium text-foreground">Request Leave</span>
+            </button>
+          </LeaveRequestDialog>
         </div>
 
         {/* Dashboard Cards */}
@@ -44,13 +55,112 @@ export default function EmployeeDashboard() {
           <AttendanceCard />
 
           {/* Leave Requests Card */}
-          <LeaveRequestsCard />
+          <LeaveRequestsCard userId={user?.id} />
 
           {/* Payroll Card */}
           <PayrollCard />
         </div>
       </main>
     </div>
+  );
+}
+
+function LeaveRequestDialog({ userId, children }: { userId?: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [leaveType, setLeaveType] = useState<string>('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [reason, setReason] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !leaveType || !startDate || !endDate) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('leave_requests').insert({
+        user_id: userId,
+        leave_type: leaveType as 'vacation' | 'sick' | 'personal',
+        start_date: startDate,
+        end_date: endDate,
+        reason: reason || null,
+        status: 'pending',
+      });
+
+      if (error) throw error;
+
+      toast.success('Leave request submitted successfully!');
+      setOpen(false);
+      setLeaveType('');
+      setStartDate('');
+      setEndDate('');
+      setReason('');
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to submit leave request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Request Time Off</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Leave Type *</Label>
+            <Select value={leaveType} onValueChange={setLeaveType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select leave type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vacation">Vacation</SelectItem>
+                <SelectItem value="sick">Sick Leave</SelectItem>
+                <SelectItem value="personal">Personal</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Start Date *</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label>End Date *</Label>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Reason (Optional)</Label>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Briefly describe the reason for your leave..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Submitting...' : 'Submit Request'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -144,22 +254,65 @@ function AttendanceCard() {
   );
 }
 
-function LeaveRequestsCard() {
-  const leaveRequests = [
-    { type: 'Vacation', dates: 'Jan 20 - Jan 25', status: 'pending' },
-    { type: 'Sick Leave', dates: 'Jan 10', status: 'approved' },
-    { type: 'Personal', dates: 'Dec 28', status: 'rejected' },
-  ];
+function LeaveRequestsCard({ userId }: { userId?: string }) {
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
+  const [leaveBalance, setLeaveBalance] = useState({ vacation: 0, sick: 0, personal: 0 });
 
-  const leaveBalance = { vacation: 12, sick: 5, personal: 3 };
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchData = async () => {
+      // Fetch leave requests
+      const { data: requests } = await supabase
+        .from('leave_requests')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (requests) {
+        setLeaveRequests(
+          requests.map((r) => ({
+            type: r.leave_type.charAt(0).toUpperCase() + r.leave_type.slice(1),
+            dates:
+              r.start_date === r.end_date
+                ? new Date(r.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                : `${new Date(r.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(r.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+            status: r.status,
+          }))
+        );
+      }
+
+      // Fetch leave balance
+      const currentYear = new Date().getFullYear();
+      const { data: balance } = await supabase
+        .from('leave_balances')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('year', currentYear)
+        .maybeSingle();
+
+      if (balance) {
+        setLeaveBalance({
+          vacation: balance.vacation_days - balance.vacation_used,
+          sick: balance.sick_days - balance.sick_used,
+          personal: balance.personal_days - balance.personal_used,
+        });
+      }
+    };
+
+    fetchData();
+  }, [userId]);
 
   return (
     <div className="card-elevated p-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold text-foreground">Leave Requests</h2>
-        <button className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-          View All <ArrowRight className="w-4 h-4" />
-        </button>
+        <LeaveRequestDialog userId={userId}>
+          <button className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+            <Plus className="w-4 h-4" /> New
+          </button>
+        </LeaveRequestDialog>
       </div>
 
       {/* Leave Balance */}
@@ -180,21 +333,25 @@ function LeaveRequestsCard() {
 
       {/* Recent Requests */}
       <div className="space-y-3">
-        {leaveRequests.map((request, index) => (
-          <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-            <div>
-              <p className="text-sm font-medium text-foreground">{request.type}</p>
-              <p className="text-xs text-muted-foreground">{request.dates}</p>
+        {leaveRequests.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No leave requests yet</p>
+        ) : (
+          leaveRequests.map((request, index) => (
+            <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <div>
+                <p className="text-sm font-medium text-foreground">{request.type}</p>
+                <p className="text-xs text-muted-foreground">{request.dates}</p>
+              </div>
+              {request.status === 'approved' ? (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              ) : request.status === 'rejected' ? (
+                <XCircle className="w-5 h-5 text-red-500" />
+              ) : (
+                <span className="status-badge status-pending">{request.status}</span>
+              )}
             </div>
-            {request.status === 'approved' ? (
-              <CheckCircle className="w-5 h-5 text-green-500" />
-            ) : request.status === 'rejected' ? (
-              <XCircle className="w-5 h-5 text-red-500" />
-            ) : (
-              <span className="status-badge status-pending">{request.status}</span>
-            )}
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
